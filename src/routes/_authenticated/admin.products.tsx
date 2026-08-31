@@ -67,7 +67,7 @@ function AdminProducts() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
-    let specs: Record<string, unknown> = {};
+    let specs: Record<string, string> = {};
     try {
       specs = JSON.parse(form.specifications || "{}");
     } catch {
