@@ -28,7 +28,7 @@ function AdminOrders() {
     },
   });
 
-  const update = async (id: string, patch: Record<string, unknown>) => {
+  const update = async (id: string, patch: { status?: string; rejection_reason?: string | null }) => {
     const { error } = await supabase.from("orders").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else {
