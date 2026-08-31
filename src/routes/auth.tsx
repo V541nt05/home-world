@@ -36,7 +36,10 @@ function AuthPage() {
           });
     const { error } = await fn;
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     if (mode === "signup") toast.success("Account created. Ask an admin to grant access.");
     navigate({ to: "/admin" });
   };
