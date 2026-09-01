@@ -13,8 +13,8 @@ function Dashboard() {
     queryKey: ["admin-stats"],
     queryFn: async () => {
       const [products, orders] = await Promise.all([
-        supabase.from("products").select("id,name,stock,is_active"),
-        supabase.from("orders").select("id,total,status,created_at,payment_method").order("created_at", { ascending: false }),
+        supabase.from("products").select("id,name,stock_quantity,active"),
+        supabase.from("orders").select("id,total,order_status,created_at,payment_method").order("created_at", { ascending: false }),
       ]);
       if (products.error) throw products.error;
       if (orders.error) throw orders.error;
@@ -25,11 +25,11 @@ function Dashboard() {
   if (stats.isLoading) return <Loading />;
   if (stats.error) return <ErrorState />;
   const { products, orders } = stats.data!;
-  const pending = orders.filter((o) => o.status === "pending");
+  const pending = orders.filter((o) => o.order_status === "pending");
   const sales = orders
-    .filter((o) => o.status !== "rejected" && o.status !== "cancelled")
+    .filter((o) => o.order_status !== "rejected" && o.order_status !== "cancelled")
     .reduce((s, o) => s + Number(o.total), 0);
-  const lowStock = products.filter((p) => p.stock <= 3);
+  const lowStock = products.filter((p) => p.stock_quantity <= 3);
 
   return (
     <div className="space-y-6">
@@ -64,7 +64,7 @@ function Dashboard() {
                     <td className="p-2">{new Date(o.created_at).toLocaleDateString()}</td>
                     <td className="p-2">{inr(o.total)}</td>
                     <td className="p-2">{o.payment_method}</td>
-                    <td className="p-2">{o.status}</td>
+                    <td className="p-2">{o.order_status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -82,7 +82,7 @@ function Dashboard() {
             {lowStock.map((p) => (
               <li key={p.id} className="flex justify-between border-b p-2 last:border-0">
                 <span>{p.name}</span>
-                <span className="text-destructive">{p.stock} left</span>
+                <span className="text-destructive">{p.stock_quantity} left</span>
               </li>
             ))}
           </ul>
@@ -100,3 +100,4 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+

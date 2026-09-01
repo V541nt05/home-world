@@ -32,7 +32,7 @@ function ProductPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*,product_images(image_url,is_primary,sort_order),categories(name)")
+        .select("*,product_images(image_url,is_primary),categories(name)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -47,7 +47,7 @@ function ProductPage() {
         .from("reviews")
         .select("*")
         .eq("product_id", id)
-        .eq("is_visible", true)
+        .eq("visible", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -59,8 +59,7 @@ function ProductPage() {
   const p = product.data;
   if (!p) return <Layout><Empty label="Product not found." /></Layout>;
 
-  const images = (p.product_images || []).slice().sort((a, b) => a.sort_order - b.sort_order);
-  const price = finalPrice(p.price, p.discount_percent);
+  const images = p.product_images || [];  const price = finalPrice(p.price, p.discount);
   const specs = (p.specifications || {}) as Record<string, string>;
   const avg = reviews.data?.length
     ? reviews.data.reduce((s, r) => s + r.rating, 0) / reviews.data.length
@@ -71,9 +70,9 @@ function ProductPage() {
     name: p.name,
     brand: p.brand,
     price: p.price,
-    discount_percent: p.discount_percent,
+    discount: p.discount,
     image: images[0]?.image_url || null,
-    stock: p.stock,
+    stock: p.stock_quantity,
     qty,
   };
 
@@ -84,7 +83,7 @@ function ProductPage() {
       product_id: id,
       customer_name: review.customer_name,
       rating: review.rating,
-      comment: review.comment,
+      review_text: review.comment,
     });
     if (error) toast.error("Could not submit review");
     else {
@@ -130,25 +129,25 @@ function ProductPage() {
           </div>
           <div className="mt-4 flex items-baseline gap-3">
             <span className="text-3xl font-bold">{inr(price)}</span>
-            {p.discount_percent > 0 && (
+            {p.discount > 0 && (
               <>
                 <span className="text-muted-foreground line-through">{inr(p.price)}</span>
-                <span className="font-medium text-primary">{p.discount_percent}% off</span>
+                <span className="font-medium text-primary">{p.discount}% off</span>
               </>
             )}
           </div>
-          <div className={`mt-1 text-sm ${p.stock > 0 ? "text-muted-foreground" : "text-destructive"}`}>
-            {p.stock > 0 ? `In stock (${p.stock} available)` : "Out of stock"}
+          <div className={`mt-1 text-sm ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}>
+            {p.stock_quantity > 0 ? `In stock (${p.stock_quantity} available)` : "Out of stock"}
           </div>
 
-          {p.stock > 0 && (
+          {p.stock_quantity > 0 && (
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <div className="flex items-center rounded-md border">
                 <button className="px-3 py-2" onClick={() => setQty(Math.max(1, qty - 1))}>
                   −
                 </button>
                 <span className="w-10 text-center text-sm">{qty}</span>
-                <button className="px-3 py-2" onClick={() => setQty(Math.min(p.stock, qty + 1))}>
+                <button className="px-3 py-2" onClick={() => setQty(Math.min(p.stock_quantity, qty + 1))}>
                   +
                 </button>
               </div>
@@ -215,7 +214,7 @@ function ProductPage() {
                     {r.rating}
                   </span>
                 </div>
-                {r.comment && <p className="mt-1 text-sm text-muted-foreground">{r.comment}</p>}
+                {r.review_text && <p className="mt-1 text-sm text-muted-foreground">{r.review_text}</p>}
               </li>
             ))}
           </ul>
@@ -255,3 +254,4 @@ function ProductPage() {
     </Layout>
   );
 }
+

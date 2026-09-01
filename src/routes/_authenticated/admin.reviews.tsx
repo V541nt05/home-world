@@ -22,7 +22,7 @@ function AdminReviews() {
   });
 
   const toggle = async (id: string, visible: boolean) => {
-    await supabase.from("reviews").update({ is_visible: visible }).eq("id", id);
+    await supabase.from("reviews").update({ visible }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["admin-reviews"] });
   };
 
@@ -41,16 +41,17 @@ function AdminReviews() {
               <span className="text-muted-foreground">{r.rating}★</span>
               <span className="text-muted-foreground">· {r.products?.name}</span>
               <button
-                onClick={() => toggle(r.id, !r.is_visible)}
+                onClick={() => toggle(r.id, !r.visible)}
                 className="ml-auto text-primary"
               >
-                {r.is_visible ? "Hide" : "Show"}
+                {r.visible ? "Hide" : "Show"}
               </button>
             </div>
-            {r.comment && <p className="mt-1 text-muted-foreground">{r.comment}</p>}
+            {r.review_text && <p className="mt-1 text-muted-foreground">{r.review_text}</p>}
           </li>
         ))}
       </ul>
     </div>
   );
 }
+

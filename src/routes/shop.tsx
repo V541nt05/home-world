@@ -49,9 +49,9 @@ function Shop() {
       let query = supabase
         .from("products")
         .select(
-          "id,name,brand,price,discount_percent,stock,category_id,product_images(image_url,is_primary),reviews(rating)",
+          "id,name,brand,price,discount,stock_quantity,category_id,product_images(image_url,is_primary),reviews(rating)",
         )
-        .eq("is_active", true);
+        .eq("active", true);
       if (search.q) query = query.or(`name.ilike.%${search.q}%,brand.ilike.%${search.q}%`);
       if (search.category) {
         const cat = (categories.data || []).find((c) => c.slug === search.category);
@@ -65,8 +65,8 @@ function Shop() {
   });
 
   const list = [...(products.data || [])].sort((a, b) => {
-    const pa = finalPrice(a.price, a.discount_percent);
-    const pb = finalPrice(b.price, b.discount_percent);
+    const pa = finalPrice(a.price, a.discount);
+    const pb = finalPrice(b.price, b.discount);
     const avg = (r: { rating: number }[]) =>
       r.length ? r.reduce((s, x) => s + x.rating, 0) / r.length : 0;
     if (search.sort === "price_asc") return pa - pb;
@@ -129,3 +129,4 @@ function Shop() {
     </Layout>
   );
 }
+

@@ -16,7 +16,7 @@ function AdminInventory() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id,name,brand,stock")
+        .select("id,name,brand,stock_quantity")
         .order("name");
       if (error) throw error;
       return data;
@@ -40,14 +40,14 @@ function AdminInventory() {
     const reason = window.prompt("Reason for adjustment", delta > 0 ? "Stock received" : "Stock removed");
     if (reason === null) return;
     const next = Math.max(0, stock + delta);
-    const { error } = await supabase.from("products").update({ stock: next }).eq("id", id);
+    const { error } = await supabase.from("products").update({ stock_quantity: next }).eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
     }
     await supabase
       .from("inventory_transactions")
-      .insert({ product_id: id, change_qty: next - stock, reason });
+      .insert({ product_id: id, quantity: next - stock, notes: reason });
     toast.success("Stock updated");
     qc.invalidateQueries({ queryKey: ["inventory-products"] });
     qc.invalidateQueries({ queryKey: ["inventory-txns"] });
@@ -79,20 +79,20 @@ function AdminInventory() {
                     <div className="font-medium">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.brand}</div>
                   </td>
-                  <td className={`p-2 ${p.stock <= 3 ? "text-destructive" : ""}`}>{p.stock}</td>
+                  <td className={`p-2 ${p.stock_quantity <= 3 ? "text-destructive" : ""}`}>{p.stock_quantity}</td>
                   <td className="p-2">
                     <div className="flex gap-2">
-                      <button onClick={() => adjust(p.id, p.stock, -1)} className="rounded border px-2">
+                      <button onClick={() => adjust(p.id, p.stock_quantity, -1)} className="rounded border px-2">
                         −1
                       </button>
-                      <button onClick={() => adjust(p.id, p.stock, 1)} className="rounded border px-2">
+                      <button onClick={() => adjust(p.id, p.stock_quantity, 1)} className="rounded border px-2">
                         +1
                       </button>
                       <button
                         onClick={() => {
-                          const v = window.prompt("Set new stock", String(p.stock));
+                          const v = window.prompt("Set new stock", String(p.stock_quantity));
                           if (v === null) return;
-                          adjust(p.id, p.stock, Number(v) - p.stock);
+                          adjust(p.id, p.stock_quantity, Number(v) - p.stock_quantity);
                         }}
                         className="rounded border px-2"
                       >
@@ -121,10 +121,10 @@ function AdminInventory() {
                   {new Date(t.created_at).toLocaleString()}
                 </span>
                 <span>{t.products?.name}</span>
-                <span className={t.change_qty >= 0 ? "text-primary" : "text-destructive"}>
-                  {t.change_qty > 0 ? `+${t.change_qty}` : t.change_qty}
+                <span className={t.quantity >= 0 ? "text-primary" : "text-destructive"}>
+                  {t.quantity > 0 ? `+${t.quantity}` : t.quantity}
                 </span>
-                <span className="text-muted-foreground">{t.reason}</span>
+                <span className="text-muted-foreground">{t.notes}</span>
               </li>
             ))}
           </ul>
@@ -133,3 +133,4 @@ function AdminInventory() {
     </div>
   );
 }
+

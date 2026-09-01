@@ -53,7 +53,7 @@ function AdminOrders() {
                 {new Date(o.created_at).toLocaleString()}
               </span>
               <span className="font-semibold">{inr(o.total)}</span>
-              <span className="rounded bg-muted px-2 py-0.5">{o.status}</span>
+              <span className="rounded bg-muted px-2 py-0.5">{o.order_status}</span>
               <span className="text-muted-foreground">{o.payment_method}</span>
               <button
                 className="ml-auto text-primary"
@@ -80,14 +80,14 @@ function AdminOrders() {
                       <span className="text-muted-foreground">
                         {it.product_name} × {it.quantity}
                       </span>
-                      <span>{inr(it.total_price)}</span>
+                      <span>{inr(it.total)}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
-                    value={o.status}
-                    onChange={(e) => update(o.id, { status: e.target.value })}
+                    value={o.order_status}
+                    onChange={(e) => update(o.id, { order_status: e.target.value })}
                     className="rounded-md border px-2 py-1"
                   >
                     {STATUSES.map((s) => (
@@ -97,7 +97,7 @@ function AdminOrders() {
                     ))}
                   </select>
                   <button
-                    onClick={() => update(o.id, { status: "accepted", rejection_reason: null })}
+                    onClick={() => update(o.id, { order_status: "accepted", rejection_reason: null })}
                     className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
                   >
                     Accept
@@ -105,7 +105,7 @@ function AdminOrders() {
                   <button
                     onClick={() => {
                       const reason = window.prompt("Rejection reason");
-                      if (reason) update(o.id, { status: "rejected", rejection_reason: reason });
+                      if (reason) update(o.id, { order_status: "rejected", rejection_reason: reason });
                     }}
                     className="rounded-md border border-destructive px-3 py-1 text-destructive"
                   >
@@ -123,3 +123,4 @@ function AdminOrders() {
     </div>
   );
 }
+

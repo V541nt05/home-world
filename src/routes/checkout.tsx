@@ -80,8 +80,8 @@ function Checkout() {
           product_id: i.id,
           product_name: i.name,
           quantity: i.qty,
-          unit_price: finalPrice(i.price, i.discount_percent),
-          total_price: finalPrice(i.price, i.discount_percent) * i.qty,
+          unit_price: finalPrice(i.price, i.discount),
+          total: finalPrice(i.price, i.discount) * i.qty,
         })),
       );
       if (iErr) throw iErr;
@@ -146,7 +146,7 @@ function Checkout() {
                 <span className="truncate text-muted-foreground">
                   {i.name} × {i.qty}
                 </span>
-                <span>{inr(finalPrice(i.price, i.discount_percent) * i.qty)}</span>
+                <span>{inr(finalPrice(i.price, i.discount) * i.qty)}</span>
               </li>
             ))}
           </ul>
@@ -169,3 +169,4 @@ function Checkout() {
     </Layout>
   );
 }
+

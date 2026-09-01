@@ -21,7 +21,7 @@ function AdminLayout() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/login" });
   };
 
   if (role.isLoading) return <Loading />;
@@ -74,3 +74,4 @@ function AdminLayout() {
     </div>
   );
 }
+

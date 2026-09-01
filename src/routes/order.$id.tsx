@@ -49,7 +49,7 @@ function OrderPage() {
                 <span className="text-muted-foreground">
                   {it.product_name} × {it.quantity}
                 </span>
-                <span>{inr(it.total_price)}</span>
+                <span>{inr(it.total)}</span>
               </li>
             ))}
           </ul>
@@ -73,3 +73,4 @@ function OrderPage() {
     </Layout>
   );
 }
+

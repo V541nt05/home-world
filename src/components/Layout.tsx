@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ShoppingCart, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useCart } from "@/lib/store";
+import { UserMenu } from "./UserMenu";
 
 export function Layout({ children }: { children: ReactNode }) {
   const cart = useCart();
@@ -42,6 +43,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
+            <UserMenu />
           </nav>
         </div>
       </header>
@@ -91,3 +93,4 @@ export function ErrorState({ message }: { message?: string }) {
 export function Empty({ label }: { label: string }) {
   return <div className="py-12 text-center text-sm text-muted-foreground">{label}</div>;
 }
+

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const SELECT = "id,name,brand,price,discount_percent,stock,product_images(image_url,is_primary)";
+const SELECT = "id,name,brand,price,discount,stock_quantity,product_images(image_url,is_primary)";
 
 function Home() {
   const categories = useQuery({
@@ -41,8 +41,8 @@ function Home() {
       const { data, error } = await supabase
         .from("products")
         .select(SELECT)
-        .eq("is_active", true)
-        .eq("is_featured", true)
+        .eq("active", true)
+        .eq("featured", true)
         .limit(8);
       if (error) throw error;
       return data as ProductRow[];
@@ -55,8 +55,8 @@ function Home() {
       const { data, error } = await supabase
         .from("products")
         .select(SELECT)
-        .eq("is_active", true)
-        .order("discount_percent", { ascending: false })
+        .eq("active", true)
+        .order("discount", { ascending: false })
         .limit(8);
       if (error) throw error;
       return data as ProductRow[];
@@ -148,3 +148,4 @@ function ProductSection({
     </section>
   );
 }
+

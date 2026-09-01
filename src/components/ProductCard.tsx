@@ -6,8 +6,8 @@ export type ProductRow = {
   name: string;
   brand: string;
   price: number;
-  discount_percent: number;
-  stock: number;
+  discount: number;
+  stock_quantity: number;
   product_images?: { image_url: string; is_primary: boolean }[] | null;
 };
 
@@ -18,7 +18,7 @@ export function productImage(p: ProductRow) {
 
 export function ProductCard({ p }: { p: ProductRow }) {
   const img = productImage(p);
-  const price = finalPrice(p.price, p.discount_percent);
+  const price = finalPrice(p.price, p.discount);
   return (
     <Link
       to="/product/$id"
@@ -37,17 +37,18 @@ export function ProductCard({ p }: { p: ProductRow }) {
         <div className="line-clamp-2 text-sm font-medium">{p.name}</div>
         <div className="mt-auto flex items-baseline gap-2 pt-2">
           <span className="text-base font-semibold">{inr(price)}</span>
-          {p.discount_percent > 0 && (
+          {p.discount > 0 && (
             <>
               <span className="text-xs text-muted-foreground line-through">{inr(p.price)}</span>
-              <span className="text-xs font-medium text-primary">{p.discount_percent}% off</span>
+              <span className="text-xs font-medium text-primary">{p.discount}% off</span>
             </>
           )}
         </div>
-        <div className={`text-xs ${p.stock > 0 ? "text-muted-foreground" : "text-destructive"}`}>
-          {p.stock > 0 ? `In stock (${p.stock})` : "Out of stock"}
+        <div className={`text-xs ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}>
+          {p.stock_quantity > 0 ? `In stock (${p.stock_quantity})` : "Out of stock"}
         </div>
       </div>
     </Link>
   );
 }
+

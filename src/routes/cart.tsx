@@ -38,7 +38,7 @@ function CartPage() {
                       {i.name}
                     </Link>
                     <div className="mt-1 text-sm font-semibold">
-                      {inr(finalPrice(i.price, i.discount_percent))}
+                      {inr(finalPrice(i.price, i.discount))}
                     </div>
                     <div className="mt-2 flex items-center gap-3">
                       <div className="flex items-center rounded-md border">
@@ -94,3 +94,4 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
