@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { finalPrice, inr } from "@/lib/store";
+import { inr } from "@/lib/store";
 
 export type ProductRow = {
   id: string;
