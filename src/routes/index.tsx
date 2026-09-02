@@ -23,7 +23,7 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const SELECT = "id,name,brand,price,discount,stock_quantity,product_images(image_url,is_primary)";
+const SELECT = "id,name,brand,mrp,price,discount,stock_quantity,product_images(image_url,is_primary)";
 
 function Home() {
   const categories = useQuery({

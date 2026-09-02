@@ -49,7 +49,7 @@ function Shop() {
       let query = supabase
         .from("products")
         .select(
-          "id,name,brand,price,discount,stock_quantity,category_id,product_images(image_url,is_primary),reviews(rating)",
+          "id,name,brand,mrp,price,discount,stock_quantity,category_id,product_images(image_url,is_primary),reviews(rating)",
         )
         .eq("active", true);
       if (search.q) query = query.or(`name.ilike.%${search.q}%,brand.ilike.%${search.q}%`);

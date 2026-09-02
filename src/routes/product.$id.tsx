@@ -59,8 +59,8 @@ function ProductPage() {
   const p = product.data;
   if (!p) return <Layout><Empty label="Product not found." /></Layout>;
 
-  const images = p.product_images || [];  const price = finalPrice(p.price, p.discount);
-  const specs = (p.specifications || {}) as Record<string, string>;
+  const images = p.product_images || [];
+  const price = p.price;  
   const avg = reviews.data?.length
     ? reviews.data.reduce((s, r) => s + r.rating, 0) / reviews.data.length
     : 0;
@@ -128,13 +128,18 @@ function ProductPage() {
             <span className="text-muted-foreground">({reviews.data?.length || 0} reviews)</span>
           </div>
           <div className="mt-4 flex items-baseline gap-3">
-            <span className="text-3xl font-bold">{inr(price)}</span>
-            {p.discount > 0 && (
-              <>
-                <span className="text-muted-foreground line-through">{inr(p.price)}</span>
-                <span className="font-medium text-primary">{p.discount}% off</span>
-              </>
-            )}
+            <span className="text-3xl font-bold">{inr(p.price)}</span>
+
+              {p.discount > 0 && (
+            <>
+              <span className="text-muted-foreground line-through">
+                {inr(p.mrp)}
+              </span>
+              <span className="font-medium text-primary">
+                {p.discount}% off
+              </span>
+            </>
+              )}
           </div>
           <div className={`mt-1 text-sm ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}>
             {p.stock_quantity > 0 ? `In stock (${p.stock_quantity} available)` : "Out of stock"}

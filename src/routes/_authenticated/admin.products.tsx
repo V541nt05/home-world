@@ -17,8 +17,8 @@ type Form = {
   category_id: string;
   description: string;
   warranty: string;
+  mrp: string;
   price: string;
-  discount: string;
   stock: string;
   specifications: string;
   image_file?: File | null;
@@ -30,9 +30,9 @@ const empty: Form = {
   category_id: "",
   description: "",
   warranty: "",
-  price: "0",
-  discount: "0",
-  stock: "0",
+  mrp: "",
+  price: "",
+  stock: "",
   specifications: "{}",
   image_file: null,
 };
@@ -76,7 +76,7 @@ function AdminProducts() {
       const filename = `products/${productId}/${timestamp}-${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("product-images")
+        .from("product_images")
         .upload(filename, file);
 
       if (uploadError) {
@@ -85,7 +85,7 @@ function AdminProducts() {
       }
 
       const { data } = supabase.storage
-        .from("product-images")
+        .from("product_images")
         .getPublicUrl(filename);
 
       return data.publicUrl;
@@ -100,6 +100,17 @@ function AdminProducts() {
     e.preventDefault();
     if (!form) return;
 
+    const mrp = Number(form.mrp);
+    const price = Number(form.price);
+
+    if (mrp <= 0 || price <= 0) {
+      toast.error("MRP and discounted price must be greater than 0");
+      return;
+    }
+    if (price > mrp) {
+      toast.error("Discounted price cannot be greater than MRP");
+      return;
+    }
     setUploading(true);
     try {
       let specs: Record<string, string> = {};
@@ -110,14 +121,19 @@ function AdminProducts() {
         setUploading(false);
         return;
       }
+      const discount =
+        mrp > 0 && price < mrp
+          ? Math.round(((mrp - price) / mrp) * 100)
+          : 0;
       const payload = {
         name: form.name,
         brand: form.brand,
         category_id: form.category_id || null,
         description: form.description,
         warranty: form.warranty,
-        price: Number(form.price),
-        discount: Number(form.discount),
+        mrp,
+        price,
+        discount,
         stock_quantity: Number(form.stock),
         specifications: specs,
       };
@@ -182,9 +198,18 @@ function AdminProducts() {
             ))}
           </select>
           <input placeholder="Warranty" value={form.warranty} onChange={(e) => setForm({ ...form, warranty: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <input type="number" placeholder="Discount %" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <input type="number" placeholder="Stock" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
+          <input type="number" placeholder="MRP (e.g. 49999)" value={form.mrp} min="0"
+            onChange={(e) => setForm({ ...form, mrp: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <input type="number"placeholder="Discounted Price (e.g. 42999)"value={form.price}
+            min="0"onChange={(e) => setForm({ ...form, price: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <input type="number" placeholder="Stock Quantity (e.g. 10)" value={form.stock} min="0"
+            onChange={(e) => setForm({ ...form, stock: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
           <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, image_file: e.target.files?.[0] || null })} className="rounded-md border px-3 py-2 text-sm" />
           <textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-md border px-3 py-2 text-sm sm:col-span-2" />
           <textarea placeholder='Specifications JSON e.g. {"Capacity":"265 L"}' value={form.specifications} onChange={(e) => setForm({ ...form, specifications: e.target.value })} className="rounded-md border px-3 py-2 text-sm sm:col-span-2" />
@@ -203,7 +228,8 @@ function AdminProducts() {
             <thead className="bg-muted text-left">
               <tr>
                 <th className="p-2">Product</th>
-                <th className="p-2">Price</th>
+                <th className="p-2">MRP</th>
+                <th className="p-2">Selling Price</th>
                 <th className="p-2">Discount</th>
                 <th className="p-2">Stock</th>
                 <th className="p-2">Active</th>
@@ -217,8 +243,9 @@ function AdminProducts() {
                     <div className="font-medium">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.brand}</div>
                   </td>
+                  <td className="p-2">{inr(p.mrp)}</td>
                   <td className="p-2">{inr(p.price)}</td>
-                  <td className="p-2">{p.discount}%</td>
+                  <td className="p-2">{p.discount}% OFF</td>
                   <td className="p-2">{p.stock_quantity}</td>
                   <td className="p-2">
                     <button
@@ -239,8 +266,8 @@ function AdminProducts() {
                           category_id: p.category_id || "",
                           description: p.description || "",
                           warranty: p.warranty || "",
+                          mrp: String(p.mrp),
                           price: String(p.price),
-                          discount: String(p.discount),
                           stock: String(p.stock_quantity),
                           specifications: JSON.stringify(p.specifications ?? {}),
                           image_file: null,

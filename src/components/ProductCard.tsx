@@ -5,6 +5,7 @@ export type ProductRow = {
   id: string;
   name: string;
   brand: string;
+  mrp: number;
   price: number;
   discount: number;
   stock_quantity: number;
@@ -18,7 +19,8 @@ export function productImage(p: ProductRow) {
 
 export function ProductCard({ p }: { p: ProductRow }) {
   const img = productImage(p);
-  const price = finalPrice(p.price, p.discount);
+  const price = p.price;
+  console.log("PRODUCT CARD DATA:", p);
   return (
     <Link
       to="/product/$id"
@@ -39,7 +41,7 @@ export function ProductCard({ p }: { p: ProductRow }) {
           <span className="text-base font-semibold">{inr(price)}</span>
           {p.discount > 0 && (
             <>
-              <span className="text-xs text-muted-foreground line-through">{inr(p.price)}</span>
+              <span className="text-xs text-muted-foreground line-through">{inr(p.mrp)}</span>
               <span className="text-xs font-medium text-primary">{p.discount}% off</span>
             </>
           )}
