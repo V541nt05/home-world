@@ -32,7 +32,7 @@ function AdminOrders() {
     const { error } = await supabase.from("orders").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else {
-      toast.success("Order updated");
+      toast.success("Order updated")
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
     }
   };
@@ -48,7 +48,7 @@ function AdminOrders() {
         {orders.data.map((o) => (
           <li key={o.id} className="rounded-md border bg-card p-3 text-sm">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-medium">#{o.id.slice(0, 8)}</span>
+              <span className="font-medium">#{String(o.id).slice(0, 8)}</span>
               <span className="text-muted-foreground">
                 {new Date(o.created_at).toLocaleString()}
               </span>

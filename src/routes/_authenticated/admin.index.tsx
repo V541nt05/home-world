@@ -60,7 +60,7 @@ function Dashboard() {
               <tbody>
                 {orders.slice(0, 10).map((o) => (
                   <tr key={o.id} className="border-t">
-                    <td className="p-2">{o.id.slice(0, 8)}</td>
+                    <td className="p-2">{String(o.id).slice(0, 8)}</td>
                     <td className="p-2">{new Date(o.created_at).toLocaleDateString()}</td>
                     <td className="p-2">{inr(o.total)}</td>
                     <td className="p-2">{o.payment_method}</td>

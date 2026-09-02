@@ -4,6 +4,7 @@ export type CartItem = {
   id: string;
   name: string;
   brand: string;
+  mrp: string;
   price: number;
   discount: number;
   image: string | null;
@@ -75,8 +76,9 @@ export function inr(n: number) {
 }
 
 export function cartTotals(items: CartItem[]) {
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const total = items.reduce((s, i) => s + finalPrice(i.price, i.discount) * i.qty, 0);
-  return { subtotal, discount: subtotal - total, total };
+  const subtotal = items.reduce((s, i) => s + i.mrp * i.qty, 0);
+  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const discount = subtotal - total;
+  return { subtotal, discount, total };
 }
 

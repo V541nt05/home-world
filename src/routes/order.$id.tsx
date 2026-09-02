@@ -59,7 +59,7 @@ function OrderPage() {
           </div>
           <div className="mt-3 text-muted-foreground">
             Payment: {o.payment_method} · Status:{" "}
-            <span className="font-medium text-foreground">{o.status}</span>
+            <span className="font-medium text-foreground">{o.order_status}</span>
           </div>
           {o.rejection_reason && (
             <div className="mt-2 text-destructive">Reason: {o.rejection_reason}</div>

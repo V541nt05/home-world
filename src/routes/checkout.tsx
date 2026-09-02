@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout, Empty } from "@/components/Layout";
-import { cartTotals, clearCart, finalPrice, inr, useCart } from "@/lib/store";
+import { cartTotals, clearCart, inr, useCart } from "@/lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout")({
@@ -30,7 +30,7 @@ function Checkout() {
     city: "Pune",
     pincode: "",
     notes: "",
-    payment_method: "COD",
+    payment_method: "cod",
   });
 
   const field = (k: keyof typeof form) => ({
@@ -63,12 +63,17 @@ function Checkout() {
         .from("orders")
         .insert({
           customer_id: customer.id,
+          customer_name: form.name,
+          customer_phone: form.phone,
+          delivery_address: form.address,
+          city: form.city,
+          pincode: form.pincode,
           subtotal,
           discount,
           total,
           payment_method: form.payment_method,
           notes: form.notes,
-          status: "pending",
+          order_status: "pending",
         })
         .select("id")
         .single();
@@ -80,17 +85,22 @@ function Checkout() {
           product_id: i.id,
           product_name: i.name,
           quantity: i.qty,
-          unit_price: finalPrice(i.price, i.discount),
-          total: finalPrice(i.price, i.discount) * i.qty,
+          unit_price: i.price,
+          total:i.price * i.qty,
         })),
       );
       if (iErr) throw iErr;
 
       clearCart();
       navigate({ to: "/order/$id", params: { id: order.id } });
-    } catch {
-      toast.error("Could not place order. Please try again.");
-    } finally {
+      } catch (error) {
+      console.error("ORDER ERROR:", error);
+      toast.error(
+          error instanceof Error
+          ? error.message
+          : "Could not place order. Please try again."
+        );
+      } finally {
       setBusy(false);
     }
   };
@@ -118,7 +128,7 @@ function Checkout() {
           <textarea placeholder="Order notes (optional)" rows={2} {...field("notes")} />
           <div className="rounded-md border bg-card p-3 text-sm">
             <div className="font-medium">Payment method</div>
-            {["COD", "UPI"].map((m) => (
+            {["cod", "upi"].map((m) => (
               <label key={m} className="mt-2 flex items-center gap-2">
                 <input
                   type="radio"
@@ -126,7 +136,7 @@ function Checkout() {
                   checked={form.payment_method === m}
                   onChange={() => setForm({ ...form, payment_method: m })}
                 />
-                {m === "COD" ? "Cash on delivery" : "UPI (pay on delivery via UPI)"}
+                {m === "cod" ? "Cash on delivery" : "UPI (pay on delivery via UPI)"}
               </label>
             ))}
           </div>
@@ -146,7 +156,7 @@ function Checkout() {
                 <span className="truncate text-muted-foreground">
                   {i.name} × {i.qty}
                 </span>
-                <span>{inr(finalPrice(i.price, i.discount) * i.qty)}</span>
+                <span>{inr(i.price * i.qty)}</span>
               </li>
             ))}
           </ul>

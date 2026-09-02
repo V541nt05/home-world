@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Layout, Empty } from "@/components/Layout";
-import { cartTotals, finalPrice, inr, removeFromCart, setQty, useCart } from "@/lib/store";
+import { cartTotals,  inr, removeFromCart, setQty, useCart } from "@/lib/store";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -38,7 +38,7 @@ function CartPage() {
                       {i.name}
                     </Link>
                     <div className="mt-1 text-sm font-semibold">
-                      {inr(finalPrice(i.price, i.discount))}
+                      {inr(i.price)}
                     </div>
                     <div className="mt-2 flex items-center gap-3">
                       <div className="flex items-center rounded-md border">

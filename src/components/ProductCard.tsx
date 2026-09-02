@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { inr } from "@/lib/store";
+import { addToCart, inr } from "@/lib/store";
 
 export type ProductRow = {
   id: string;
@@ -20,7 +20,26 @@ export function productImage(p: ProductRow) {
 export function ProductCard({ p }: { p: ProductRow }) {
   const img = productImage(p);
   const price = p.price;
-  console.log("PRODUCT CARD DATA:", p);
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (p.stock_quantity <= 0) return;
+
+    addToCart({
+      id: p.id,
+      name: p.name,
+      brand: p.brand,
+      mrp: p.mrp,
+      price: p.price,
+      discount: p.discount,
+      image: img,
+      stock: p.stock_quantity,
+      qty: 1,
+    });
+  }
+
   return (
     <Link
       to="/product/$id"
@@ -29,26 +48,58 @@ export function ProductCard({ p }: { p: ProductRow }) {
     >
       <div className="flex aspect-square items-center justify-center bg-muted">
         {img ? (
-          <img src={img} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+          <img
+            src={img}
+            alt={p.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
         ) : (
           <span className="text-xs text-muted-foreground">No image</span>
         )}
       </div>
+
       <div className="flex flex-1 flex-col gap-1 p-3">
         <div className="text-xs text-muted-foreground">{p.brand}</div>
+
         <div className="line-clamp-2 text-sm font-medium">{p.name}</div>
+
         <div className="mt-auto flex items-baseline gap-2 pt-2">
           <span className="text-base font-semibold">{inr(price)}</span>
+
           {p.discount > 0 && (
             <>
-              <span className="text-xs text-muted-foreground line-through">{inr(p.mrp)}</span>
-              <span className="text-xs font-medium text-primary">{p.discount}% off</span>
+              <span className="text-xs text-muted-foreground line-through">
+                {inr(p.mrp)}
+              </span>
+
+              <span className="text-xs font-medium text-primary">
+                {p.discount}% off
+              </span>
             </>
           )}
         </div>
-        <div className={`text-xs ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}>
-          {p.stock_quantity > 0 ? `In stock (${p.stock_quantity})` : "Out of stock"}
+
+        <div
+          className={`text-xs ${
+            p.stock_quantity > 0
+              ? "text-muted-foreground"
+              : "text-destructive"
+          }`}
+        >
+          {p.stock_quantity > 0
+            ? `In stock (${p.stock_quantity})`
+            : "Out of stock"}
         </div>
+
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={p.stock_quantity <= 0}
+          className="mt-2 w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {p.stock_quantity > 0 ? "Add to Cart" : "Out of Stock"}
+        </button>
       </div>
     </Link>
   );
