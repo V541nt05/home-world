@@ -28,7 +28,6 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
 
-  // Check if user is already logged in and redirect
   useEffect(() => {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();

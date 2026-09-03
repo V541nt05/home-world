@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { User, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,13 +17,23 @@ export function UserMenu() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user || null);
-      setLoading(false);
-    };
+      const currentUser = data.session?.user || null;
+      setUser(currentUser);
+      if (currentUser) {
+        const { data: admin } = await supabase.rpc("has_role", {
+        _user_id: currentUser.id,
+        _role: "admin",
+      });
+    setIsAdmin(!!admin);
+  }
+
+  setLoading(false);
+};
 
     getUser();
 
@@ -99,9 +109,14 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
-          <span className="text-sm">Admin Dashboard</span>
+        <DropdownMenuItem onClick={() => navigate({ to: "/orders" })}>
+        <span className="text-sm">My Orders</span>
         </DropdownMenuItem>
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+            <span className="text-sm">Admin Dashboard</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
           <LogOut className="h-4 w-4 mr-2" />

@@ -10,8 +10,6 @@ export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: AdminOrders,
 });
 
-const STATUSES = ["pending", "accepted", "packed", "delivered", "rejected"];
-
 function AdminOrders() {
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -27,8 +25,10 @@ function AdminOrders() {
       return data;
     },
   });
-
-  const update = async (id: string, patch: { status?: string; rejection_reason?: string | null }) => {
+    const update = async (
+    id: string,
+    patch: { order_status?: string; rejection_reason?: string | null }
+    ) => {
     const { error } = await supabase.from("orders").update(patch).eq("id", id);
     if (error) toast.error(error.message);
     else {
@@ -85,32 +85,21 @@ function AdminOrders() {
                   ))}
                 </ul>
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={o.order_status}
-                    onChange={(e) => update(o.id, { order_status: e.target.value })}
-                    className="rounded-md border px-2 py-1"
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => update(o.id, { order_status: "accepted", rejection_reason: null })}
-                    className="rounded-md bg-primary px-3 py-1 text-primary-foreground"
-                  >
+                  {o.order_status === "pending" && (
+                    <>
+                    <button
+                      onClick={() => update(o.id, { order_status: "accepted" })}
+                      className="rounded-md bg-green-500 px-2 py-1 text-white"
+                    > 
                     Accept
-                  </button>
-                  <button
-                    onClick={() => {
-                      const reason = window.prompt("Rejection reason");
-                      if (reason) update(o.id, { order_status: "rejected", rejection_reason: reason });
-                    }}
-                    className="rounded-md border border-destructive px-3 py-1 text-destructive"
-                  >
-                    Reject
-                  </button>
+                    </button>
+                    <button
+                      onClick={() => update(o.id, { order_status: "rejected" })}
+                      className="rounded-md bg-red-500 px-2 py-1 text-white"
+                    >
+                      Reject
+                    </button>
+                    </>)}                  
                 </div>
                 {o.rejection_reason && (
                   <div className="text-destructive">Reason: {o.rejection_reason}</div>
