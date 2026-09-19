@@ -177,16 +177,24 @@ function AdminProducts() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
+    <div className="flex items-center justify-between">
+      <h1 className="text-2xl font-bold">Products</h1>
+
+      <div className="flex gap-2">
         <button
           onClick={() => setForm({ ...empty })}
           className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
         >
           Add product
         </button>
+        <button
+          onClick={() => toast.info("Product scanner coming next")}
+          className="rounded-md border px-4 py-2 text-sm"
+        >
+            📷 Scan Product
+        </button>
       </div>
-
+    </div>
       {form && (
         <form onSubmit={save} className="grid gap-3 rounded-md border bg-card p-4 sm:grid-cols-2">
           <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
@@ -217,6 +225,7 @@ function AdminProducts() {
             <button disabled={uploading} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60">{uploading ? "Uploading..." : "Save"}</button>
             <button type="button" onClick={() => setForm(null)} disabled={uploading} className="rounded-md border px-4 py-2 text-sm disabled:opacity-60">Cancel</button>
           </div>
+          )
         </form>
       )}
 
