@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import Tesseract from "tesseract.js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loading, ErrorState, Empty } from "@/components/Layout";
 import { inr } from "@/lib/store";
@@ -36,12 +37,64 @@ const empty: Form = {
   specifications: "{}",
   image_file: null,
 };
+function parseProductText(text: string) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
+  // Find MRP from common sticker formats:
+  // MRP ₹49999
+  // M.R.P.: Rs. 49,999
+  // Maximum Retail Price: ₹49999
+  const mrpMatch = text.match(
+    /(?:M\.?\s*R\.?\s*P\.?|maximum\s+retail\s+price)\s*[:\-]?\s*(?:₹|rs\.?)*\s*([\d,]+(?:\.\d{1,2})?)/i,
+  );
+
+  const mrp = mrpMatch ? mrpMatch[1].replace(/,/g, "") : "";
+
+  // Try to find an explicitly labelled product name
+  const nameMatch = text.match(
+    /(?:product\s*name|model\s*name|product|model|name)\s*[:\-]\s*(.+)/i,
+  );
+
+  let name = nameMatch?.[1]?.trim() || "";
+
+  // If no label exists, use the first meaningful line
+  if (!name) {
+    const ignoredWords = [
+      "mrp",
+      "maximum retail price",
+      "made in india",
+      "warranty",
+      "serial number",
+      "barcode",
+      "model number",
+      "manufactured",
+    ];
+
+    name =
+      lines.find(
+        (line) =>
+          line.length > 3 && !ignoredWords.some((word) => line.toLowerCase().includes(word)),
+      ) || "";
+  }
+
+  return {
+    name,
+    mrp,
+    description: text,
+  };
+}
 function AdminProducts() {
   const qc = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanText, setScanText] = useState("");
   const categories = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
@@ -84,9 +137,7 @@ function AdminProducts() {
         return null;
       }
 
-      const { data } = supabase.storage
-        .from("product_images")
-        .getPublicUrl(filename);
+      const { data } = supabase.storage.from("product_images").getPublicUrl(filename);
 
       return data.publicUrl;
     } catch (err) {
@@ -121,10 +172,7 @@ function AdminProducts() {
         setUploading(false);
         return;
       }
-      const discount =
-        mrp > 0 && price < mrp
-          ? Math.round(((mrp - price) / mrp) * 100)
-          : 0;
+      const discount = mrp > 0 && price < mrp ? Math.round(((mrp - price) / mrp) * 100) : 0;
       const payload = {
         name: form.name,
         brand: form.brand,
@@ -177,58 +225,230 @@ function AdminProducts() {
 
   return (
     <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h1 className="text-2xl font-bold">Products</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Products</h1>
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setForm({ ...empty })}
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
-        >
-          Add product
-        </button>
-        <button
-          onClick={() => toast.info("Product scanner coming next")}
-          className="rounded-md border px-4 py-2 text-sm"
-        >
+        <div className="flex gap-2">
+          <button
+            onClick={() => setForm({ ...empty })}
+            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          >
+            Add product
+          </button>
+          <button
+            onClick={() => {
+              setScannerOpen(true);
+              setScanImage(null);
+              setScanText("");
+            }}
+            className="rounded-md border px-4 py-2 text-sm"
+          >
             📷 Scan Product
-        </button>
+          </button>
+        </div>
       </div>
-    </div>
       {form && (
         <form onSubmit={save} className="grid gap-3 rounded-md border bg-card p-4 sm:grid-cols-2">
-          <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <input placeholder="Brand" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="rounded-md border px-3 py-2 text-sm">
+          <input
+            required
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <input
+            placeholder="Brand"
+            value={form.brand}
+            onChange={(e) => setForm({ ...form, brand: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <select
+            value={form.category_id}
+            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          >
             <option value="">No category</option>
             {categories.data?.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
-          <input placeholder="Warranty" value={form.warranty} onChange={(e) => setForm({ ...form, warranty: e.target.value })} className="rounded-md border px-3 py-2 text-sm" />
-          <input type="number" placeholder="MRP (e.g. 49999)" value={form.mrp} min="0"
+          <input
+            placeholder="Warranty"
+            value={form.warranty}
+            onChange={(e) => setForm({ ...form, warranty: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <input
+            type="number"
+            placeholder="MRP (e.g. 49999)"
+            value={form.mrp}
+            min="0"
             onChange={(e) => setForm({ ...form, mrp: e.target.value })}
             className="rounded-md border px-3 py-2 text-sm"
           />
-          <input type="number"placeholder="Discounted Price (e.g. 42999)"value={form.price}
-            min="0"onChange={(e) => setForm({ ...form, price: e.target.value })}
+          <input
+            type="number"
+            placeholder="Discounted Price (e.g. 42999)"
+            value={form.price}
+            min="0"
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
             className="rounded-md border px-3 py-2 text-sm"
           />
-          <input type="number" placeholder="Stock Quantity (e.g. 10)" value={form.stock} min="0"
+          <input
+            type="number"
+            placeholder="Stock Quantity (e.g. 10)"
+            value={form.stock}
+            min="0"
             onChange={(e) => setForm({ ...form, stock: e.target.value })}
             className="rounded-md border px-3 py-2 text-sm"
           />
-          <input type="file" accept="image/*" onChange={(e) => setForm({ ...form, image_file: e.target.files?.[0] || null })} className="rounded-md border px-3 py-2 text-sm" />
-          <textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="rounded-md border px-3 py-2 text-sm sm:col-span-2" />
-          <textarea placeholder='Specifications JSON e.g. {"Capacity":"265 L"}' value={form.specifications} onChange={(e) => setForm({ ...form, specifications: e.target.value })} className="rounded-md border px-3 py-2 text-sm sm:col-span-2" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setForm({ ...form, image_file: e.target.files?.[0] || null })}
+            className="rounded-md border px-3 py-2 text-sm"
+          />
+          <textarea
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm sm:col-span-2"
+          />
+          <textarea
+            placeholder='Specifications JSON e.g. {"Capacity":"265 L"}'
+            value={form.specifications}
+            onChange={(e) => setForm({ ...form, specifications: e.target.value })}
+            className="rounded-md border px-3 py-2 text-sm sm:col-span-2"
+          />
           <div className="flex gap-2 sm:col-span-2">
-            <button disabled={uploading} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60">{uploading ? "Uploading..." : "Save"}</button>
-            <button type="button" onClick={() => setForm(null)} disabled={uploading} className="rounded-md border px-4 py-2 text-sm disabled:opacity-60">Cancel</button>
+            <button
+              disabled={uploading}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60"
+            >
+              {uploading ? "Uploading..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm(null)}
+              disabled={uploading}
+              className="rounded-md border px-4 py-2 text-sm disabled:opacity-60"
+            >
+              Cancel
+            </button>
           </div>
-          )
         </form>
       )}
+      {scannerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Scan Product Sticker</h2>
 
+              <button
+                type="button"
+                onClick={() => setScannerOpen(false)}
+                className="text-xl text-gray-500 hover:text-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-gray-600">
+              Upload a clear photo of the product sticker.
+            </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="mb-4 block w-full rounded-md border p-2 text-sm"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+
+                if (!file) return;
+
+                const imageUrl = URL.createObjectURL(file);
+                setScanImage(imageUrl);
+                setScanText("");
+                setScanning(true);
+
+                try {
+                  const result = await Tesseract.recognize(file, "eng", {
+                    logger: (message) => {
+                      console.log(message);
+                    },
+                  });
+
+                  setScanText(result.data.text);
+                } catch (error) {
+                  console.error("OCR error:", error);
+                  toast.error("Could not read the sticker.");
+                } finally {
+                  setScanning(false);
+                }
+              }}
+            />
+
+            {scanImage && (
+              <img
+                src={scanImage}
+                alt="Product sticker preview"
+                className="mb-4 max-h-64 w-full rounded-lg border object-contain"
+              />
+            )}
+
+            {scanning && (
+              <p className="mb-4 text-sm text-blue-600">🔍 Reading sticker... Please wait.</p>
+            )}
+
+            {scanText && (
+              <div className="mb-4">
+                <label className="mb-2 block text-sm font-medium">Extracted Text</label>
+
+                <textarea
+                  value={scanText}
+                  onChange={(event) => setScanText(event.target.value)}
+                  rows={8}
+                  className="w-full rounded-md border p-3 text-sm"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setScannerOpen(false)}
+                className="rounded-md border px-4 py-2 text-sm"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={!scanText || scanning}
+                onClick={() => {
+                  const parsed = parseProductText(scanText);
+
+                  setForm({
+                    ...empty,
+                    name: parsed.name,
+                    mrp: parsed.mrp,
+                    description: parsed.description,
+                  });
+
+                  setScannerOpen(false);
+                  toast.success("Product name and MRP extracted!");
+                }}
+                className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+              >
+                Use Text
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {!products.data?.length ? (
         <Empty label="No products yet." />
       ) : (
@@ -295,4 +515,3 @@ function AdminProducts() {
     </div>
   );
 }
-

@@ -9,7 +9,10 @@ export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
       { title: "Checkout — Home World" },
-      { name: "description", content: "Place your appliance order with cash on delivery or UPI at Home World, Pune." },
+      {
+        name: "description",
+        content: "Place your appliance order with cash on delivery or UPI at Home World, Pune.",
+      },
       { property: "og:title", content: "Checkout — Home World" },
       { property: "og:description", content: "Place your order with COD or UPI." },
     ],
@@ -45,62 +48,48 @@ function Checkout() {
     if (!items.length) return;
     setBusy(true);
     try {
-      const { data: customer, error: cErr } = await supabase
-        .from("customers")
-        .insert({
-          name: form.name,
-          phone: form.phone,
-          email: form.email,
-          address: form.address,
-          city: form.city,
-          pincode: form.pincode,
-        })
-        .select("id")
-        .single();
-      if (cErr) throw cErr;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
-      const { data: order, error: oErr } = await supabase
-        .from("orders")
-        .insert({
-          customer_id: customer.id,
-          customer_name: form.name,
-          customer_phone: form.phone,
-          delivery_address: form.address,
-          city: form.city,
-          pincode: form.pincode,
-          subtotal,
-          discount,
-          total,
-          payment_method: form.payment_method,
-          notes: form.notes,
-          order_status: "pending",
-        })
-        .select("id")
-        .single();
-      if (oErr) throw oErr;
+      if (userError) throw userError;
 
-      const { error: iErr } = await supabase.from("order_items").insert(
-        items.map((i) => ({
-          order_id: order.id,
-          product_id: i.id,
-          product_name: i.name,
-          quantity: i.qty,
-          unit_price: i.price,
-          total:i.price * i.qty,
-        })),
-      );
-      if (iErr) throw iErr;
+      let customerId: string;
+
+      if (userData.user) {
+        // Use the authenticated customer's linked record
+        const { data: linkedCustomerId, error: linkError } =
+          await supabase.rpc("link_customer_to_auth");
+
+        if (linkError) throw linkError;
+
+        customerId = linkedCustomerId;
+      } else {
+        // Keep guest checkout working
+        const { data: guestCustomer, error: cErr } = await supabase
+          .from("customers")
+          .insert({
+            name: form.name,
+            phone: form.phone,
+            email: form.email || null,
+            address: form.address,
+            city: form.city,
+            pincode: form.pincode,
+          })
+          .select("id")
+          .single();
+
+        if (cErr) throw cErr;
+
+        customerId = guestCustomer.id;
+      }
 
       clearCart();
       navigate({ to: "/order/$id", params: { id: order.id } });
-      } catch (error) {
+    } catch (error) {
       console.error("ORDER ERROR:", error);
       toast.error(
-          error instanceof Error
-          ? error.message
-          : "Could not place order. Please try again."
-        );
-      } finally {
+        error instanceof Error ? error.message : "Could not place order. Please try again.",
+      );
+    } finally {
       setBusy(false);
     }
   };
@@ -179,4 +168,3 @@ function Checkout() {
     </Layout>
   );
 }
-

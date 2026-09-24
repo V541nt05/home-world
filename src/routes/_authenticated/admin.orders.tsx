@@ -25,14 +25,36 @@ function AdminOrders() {
       return data;
     },
   });
-    const update = async (
-    id: string,
-    patch: { order_status?: string; rejection_reason?: string | null }
-    ) => {
+  const update = async (
+    id: number,
+    patch: {
+      order_status?: string;
+      rejection_reason?: string | null;
+    },
+  ) => {
+    // Accept orders through the secure stock-management RPC
+    if (patch.order_status === "accepted") {
+      const { error } = await supabase.rpc("accept_order_and_reduce_stock", {
+        p_order_id: id,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Order accepted and stock reduced");
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+      return;
+    }
+
+    // Handle rejection and other status updates normally
     const { error } = await supabase.from("orders").update(patch).eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Order updated")
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Order updated");
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
     }
   };
@@ -87,19 +109,20 @@ function AdminOrders() {
                 <div className="flex flex-wrap items-center gap-2">
                   {o.order_status === "pending" && (
                     <>
-                    <button
-                      onClick={() => update(o.id, { order_status: "accepted" })}
-                      className="rounded-md bg-green-500 px-2 py-1 text-white"
-                    > 
-                    Accept
-                    </button>
-                    <button
-                      onClick={() => update(o.id, { order_status: "rejected" })}
-                      className="rounded-md bg-red-500 px-2 py-1 text-white"
-                    >
-                      Reject
-                    </button>
-                    </>)}                  
+                      <button
+                        onClick={() => update(o.id, { order_status: "accepted" })}
+                        className="rounded-md bg-green-500 px-2 py-1 text-white"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => update(o.id, { order_status: "rejected" })}
+                        className="rounded-md bg-red-500 px-2 py-1 text-white"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
                 </div>
                 {o.rejection_reason && (
                   <div className="text-destructive">Reason: {o.rejection_reason}</div>
@@ -112,4 +135,3 @@ function AdminOrders() {
     </div>
   );
 }
-
