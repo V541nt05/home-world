@@ -139,17 +139,7 @@ function AdminOrders() {
                       </button>
                     </>
                   )}
-
                   {o.order_status === "accepted" && (
-                    <button
-                      onClick={() => update(o.id, { order_status: "processing" })}
-                      className="rounded-md bg-blue-500 px-2 py-1 text-white"
-                    >
-                      Start Processing
-                    </button>
-                  )}
-
-                  {o.order_status === "processing" && (
                     <button
                       onClick={() => update(o.id, { order_status: "ready_for_delivery" })}
                       className="rounded-md bg-purple-500 px-2 py-1 text-white"
@@ -157,7 +147,30 @@ function AdminOrders() {
                       Ready for Delivery / Pickup
                     </button>
                   )}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data: invoiceId, error } = await supabase.rpc("generate_invoice", {
+                          p_order_id: o.id,
+                        });
 
+                        if (error) throw error;
+
+                        if (!invoiceId) {
+                          throw new Error("Invoice could not be generated.");
+                        }
+
+                        window.open(`/invoice/${invoiceId}`, "_blank");
+                      } catch (error) {
+                        toast.error(
+                          error instanceof Error ? error.message : "Could not generate invoice.",
+                        );
+                      }
+                    }}
+                    className="rounded-md bg-primary px-2 py-1 text-primary-foreground"
+                  >
+                    🧾 Print Invoice
+                  </button>
                   {o.order_status === "ready_for_delivery" && (
                     <span className="rounded-md bg-yellow-100 px-2 py-1 text-yellow-800">
                       Waiting for customer delivery confirmation
