@@ -115,13 +115,63 @@ function AdminOrders() {
                       >
                         Accept
                       </button>
+
                       <button
-                        onClick={() => update(o.id, { order_status: "rejected" })}
+                        onClick={() => {
+                          const reason = window.prompt("Why are you rejecting this order?");
+                          if (reason === null) return;
+
+                          const trimmedReason = reason.trim();
+
+                          if (!trimmedReason) {
+                            toast.error("Please enter a rejection reason.");
+                            return;
+                          }
+
+                          update(o.id, {
+                            order_status: "rejected",
+                            rejection_reason: trimmedReason,
+                          });
+                        }}
                         className="rounded-md bg-red-500 px-2 py-1 text-white"
                       >
                         Reject
                       </button>
                     </>
+                  )}
+
+                  {o.order_status === "accepted" && (
+                    <button
+                      onClick={() => update(o.id, { order_status: "processing" })}
+                      className="rounded-md bg-blue-500 px-2 py-1 text-white"
+                    >
+                      Start Processing
+                    </button>
+                  )}
+
+                  {o.order_status === "processing" && (
+                    <button
+                      onClick={() => update(o.id, { order_status: "ready_for_delivery" })}
+                      className="rounded-md bg-purple-500 px-2 py-1 text-white"
+                    >
+                      Ready for Delivery / Pickup
+                    </button>
+                  )}
+
+                  {o.order_status === "ready_for_delivery" && (
+                    <span className="rounded-md bg-yellow-100 px-2 py-1 text-yellow-800">
+                      Waiting for customer delivery confirmation
+                    </span>
+                  )}
+
+                  {o.order_status === "delivered" && (
+                    <span className="rounded-md bg-green-100 px-2 py-1 text-green-800">
+                      Delivered
+                    </span>
+                  )}
+
+                  {o.order_status === "rejected" && (
+                    <span className="rounded-md bg-red-100 px-2 py-1 text-red-800">Rejected</span>
                   )}
                 </div>
                 {o.rejection_reason && (

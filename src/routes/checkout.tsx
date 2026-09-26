@@ -97,39 +97,53 @@ function Checkout() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!items.length) return;
+
     setBusy(true);
+
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError) throw userError;
 
-      let customerId: string;
+      if (!userData.user) {
+        throw new Error("Please sign in before placing an order.");
+      }
 
-      if (userData.user) {
-        // Use the authenticated customer's linked record
-        const { data: linkedCustomerId, error: linkError } =
-          await supabase.rpc("link_customer_to_auth");
+      const { data: customerId, error: linkError } = await supabase.rpc("link_customer_to_auth");
 
-        if (linkError) throw linkError;
+      if (linkError) throw linkError;
 
-        customerId = linkedCustomerId;
-        await supabase
-          .from("customers")
-          .update({
-            name: form.name,
-            phone: form.phone,
-            email: form.email || null,
-            address: form.address,
-            city: form.city,
-            pincode: form.pincode,
-          })
-          .eq("id", customerId);
+      const { data: orderId, error: orderError } = await supabase.rpc("place_order", {
+        p_customer_id: customerId,
+        p_customer_name: form.name,
+        p_customer_phone: form.phone,
+        p_customer_email: form.email || null,
+        p_delivery_address: form.address,
+        p_city: form.city,
+        p_pincode: form.pincode,
+        p_notes: form.notes || null,
+        p_payment_method: form.payment_method,
+        p_items: items.map((item) => ({
+          product_id: Number(item.id),
+          quantity: item.qty,
+        })),
+      });
+
+      if (orderError) throw orderError;
+
+      if (!orderId) {
+        throw new Error("Order was created but no order ID was returned.");
       }
 
       clearCart();
-      navigate({ to: "/order/$id", params: { id: order.id } });
+
+      navigate({
+        to: "/order/$id",
+        params: { id: orderId },
+      });
     } catch (error) {
       console.error("ORDER ERROR:", error);
+
       toast.error(
         error instanceof Error ? error.message : "Could not place order. Please try again.",
       );
@@ -137,7 +151,6 @@ function Checkout() {
       setBusy(false);
     }
   };
-
   if (!items.length)
     return (
       <Layout>

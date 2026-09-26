@@ -11,9 +11,16 @@ export const Route = createFileRoute("/product/$id")({
   head: () => ({
     meta: [
       { title: "Product Details — Home World" },
-      { name: "description", content: "Product details, specifications, warranty and reviews at Home World, Dhayari, Pune." },
+      {
+        name: "description",
+        content:
+          "Product details, specifications, warranty and reviews at Home World, Dhayari, Pune.",
+      },
       { property: "og:title", content: "Product Details — Home World" },
-      { property: "og:description", content: "Specifications, warranty, price and customer reviews." },
+      {
+        property: "og:description",
+        content: "Specifications, warranty, price and customer reviews.",
+      },
     ],
   }),
   component: ProductPage,
@@ -54,13 +61,29 @@ function ProductPage() {
     },
   });
 
-  if (product.isLoading) return <Layout><Loading /></Layout>;
-  if (product.error) return <Layout><ErrorState /></Layout>;
+  if (product.isLoading)
+    return (
+      <Layout>
+        <Loading />
+      </Layout>
+    );
+  if (product.error)
+    return (
+      <Layout>
+        <ErrorState />
+      </Layout>
+    );
   const p = product.data;
-  if (!p) return <Layout><Empty label="Product not found." /></Layout>;
+  if (!p)
+    return (
+      <Layout>
+        <Empty label="Product not found." />
+      </Layout>
+    );
 
+  const specs = p.specifications ?? {};
   const images = p.product_images || [];
-  const price = p.price;  
+  const price = p.price;
   const avg = reviews.data?.length
     ? reviews.data.reduce((s, r) => s + r.rating, 0) / reviews.data.length
     : 0;
@@ -99,7 +122,11 @@ function ProductPage() {
         <div>
           <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-muted">
             {images[activeImg] ? (
-              <img src={images[activeImg]!.image_url} alt={p.name} className="h-full w-full object-cover" />
+              <img
+                src={images[activeImg]!.image_url}
+                alt={p.name}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="text-sm text-muted-foreground">No image</span>
             )}
@@ -130,18 +157,16 @@ function ProductPage() {
           <div className="mt-4 flex items-baseline gap-3">
             <span className="text-3xl font-bold">{inr(p.price)}</span>
 
-              {p.discount > 0 && (
-            <>
-              <span className="text-muted-foreground line-through">
-                {inr(p.mrp)}
-              </span>
-              <span className="font-medium text-primary">
-                {p.discount}% off
-              </span>
-            </>
-              )}
+            {p.discount > 0 && (
+              <>
+                <span className="text-muted-foreground line-through">{inr(p.mrp)}</span>
+                <span className="font-medium text-primary">{p.discount}% off</span>
+              </>
+            )}
           </div>
-          <div className={`mt-1 text-sm ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}>
+          <div
+            className={`mt-1 text-sm ${p.stock_quantity > 0 ? "text-muted-foreground" : "text-destructive"}`}
+          >
             {p.stock_quantity > 0 ? `In stock (${p.stock_quantity} available)` : "Out of stock"}
           </div>
 
@@ -152,7 +177,10 @@ function ProductPage() {
                   −
                 </button>
                 <span className="w-10 text-center text-sm">{qty}</span>
-                <button className="px-3 py-2" onClick={() => setQty(Math.min(p.stock_quantity, qty + 1))}>
+                <button
+                  className="px-3 py-2"
+                  onClick={() => setQty(Math.min(p.stock_quantity, qty + 1))}
+                >
                   +
                 </button>
               </div>
@@ -219,13 +247,18 @@ function ProductPage() {
                     {r.rating}
                   </span>
                 </div>
-                {r.review_text && <p className="mt-1 text-sm text-muted-foreground">{r.review_text}</p>}
+                {r.review_text && (
+                  <p className="mt-1 text-sm text-muted-foreground">{r.review_text}</p>
+                )}
               </li>
             ))}
           </ul>
         )}
 
-        <form onSubmit={submitReview} className="mt-6 max-w-md space-y-3 rounded-md border bg-card p-4">
+        <form
+          onSubmit={submitReview}
+          className="mt-6 max-w-md space-y-3 rounded-md border bg-card p-4"
+        >
           <h3 className="font-semibold">Write a review</h3>
           <input
             value={review.customer_name}
@@ -259,4 +292,3 @@ function ProductPage() {
     </Layout>
   );
 }
-
