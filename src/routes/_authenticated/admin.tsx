@@ -51,6 +51,9 @@ function AdminLayout() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3 text-sm">
+          <Link to="/" className="font-bold text-primary hover:underline">
+            ← Shop
+          </Link>
           <span className="font-bold text-primary">Home World Admin</span>
           {links.map((l) => (
             <Link
@@ -74,4 +77,3 @@ function AdminLayout() {
     </div>
   );
 }
-

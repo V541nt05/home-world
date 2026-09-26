@@ -38,52 +38,255 @@ const empty: Form = {
   image_file: null,
 };
 function parseProductText(text: string) {
-  const lines = text
+  const normalizedText = text
+    .replace(/[|]/g, "I")
+    .replace(/\bM\s*\.?\s*R\s*\.?\s*P\b/gi, "MRP")
+    .replace(/\bS\s*\.?\s*K\s*\.?\s*U\b/gi, "SKU")
+    .replace(/\bM\s*\.?\s*O\s*\.?\s*D\s*\.?\s*E\s*\.?\s*L\b/gi, "MODEL");
+
+  const lines = normalizedText
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((line) => line.replace(/\s+/g, " ").trim())
     .filter(Boolean);
 
-  // Find MRP from common sticker formats:
-  // MRP ₹49999
-  // M.R.P.: Rs. 49,999
-  // Maximum Retail Price: ₹49999
-  const mrpMatch = text.match(
-    /(?:M\.?\s*R\.?\s*P\.?|maximum\s+retail\s+price)\s*[:\-]?\s*(?:₹|rs\.?)*\s*([\d,]+(?:\.\d{1,2})?)/i,
+  // -----------------------------
+  // MRP
+  // -----------------------------
+  const mrpMatch = normalizedText.match(
+    /(?:MRP|maximum\s+retail\s+price)\s*[:\-]?\s*(?:₹|Rs\.?|INR)?\s*([\d,]+(?:\.\d{1,2})?)/i,
   );
 
   const mrp = mrpMatch ? mrpMatch[1].replace(/,/g, "") : "";
 
-  // Try to find an explicitly labelled product name
-  const nameMatch = text.match(
-    /(?:product\s*name|model\s*name|product|model|name)\s*[:\-]\s*(.+)/i,
+  // -----------------------------
+  // Brand
+  // -----------------------------
+  const brands = [
+    "Prestige",
+    "Pigeon",
+    "Butterfly",
+    "Glen",
+    "Sunflame",
+    "Hawkins",
+    "Philips",
+    "Bajaj",
+    "Havells",
+    "Crompton",
+    "Usha",
+    "Orient",
+    "LG",
+    "Samsung",
+    "Whirlpool",
+    "Godrej",
+    "IFB",
+    "Bosch",
+    "Voltas",
+    "Blue Star",
+    "Panasonic",
+    "Morphy Richards",
+    "Eureka Forbes",
+    "O General",
+  ];
+
+  const lowerText = normalizedText.toLowerCase();
+
+  const brand = brands.find((b) => lowerText.includes(b.toLowerCase())) || "";
+
+  // -----------------------------
+  // Model
+  // -----------------------------
+  const modelMatch = normalizedText.match(
+    /(?:MODEL(?:\s*(?:NO|NUMBER))?|MODEL\s*CODE|PRODUCT\s*CODE)\s*[:#\-]?\s*([A-Z0-9][A-Z0-9._\/-]{2,})/i,
   );
+
+  let model = modelMatch?.[1]?.trim() || "";
+
+  // Fallback: detect common appliance model codes
+  if (!model) {
+    const modelFallback = normalizedText.match(/\b[A-Z]{1,5}\d{2,}[A-Z0-9-]*\b/i);
+
+    model = modelFallback?.[0] || "";
+  }
+
+  // -----------------------------
+  // SKU
+  // -----------------------------
+  const skuMatch = normalizedText.match(
+    /(?:SKU|SKU\s*CODE|PRODUCT\s*CODE)\s*[:#\-]?\s*([A-Z0-9._\/-]{3,})/i,
+  );
+
+  const sku = skuMatch?.[1]?.trim() || "";
+
+  // -----------------------------
+  // Category
+  // -----------------------------
+  const categoryRules = [
+    {
+      name: "Gas Stove",
+      keywords: ["gas stove", "gas cooktop", "cooktop", "burner stove"],
+    },
+    {
+      name: "Refrigerator",
+      keywords: ["refrigerator", "fridge"],
+    },
+    {
+      name: "Washing Machine",
+      keywords: ["washing machine", "washer"],
+    },
+    {
+      name: "Air Conditioner",
+      keywords: ["air conditioner", "air-conditioner", "split ac", "window ac"],
+    },
+    {
+      name: "Microwave",
+      keywords: ["microwave", "microwave oven"],
+    },
+    {
+      name: "Mixer Grinder",
+      keywords: ["mixer grinder", "mixer-grinder", "mixer", "grinder"],
+    },
+    {
+      name: "Geyser",
+      keywords: ["geyser", "water heater"],
+    },
+    {
+      name: "Iron",
+      keywords: ["steam iron", "dry iron", "iron"],
+    },
+    {
+      name: "Fan",
+      keywords: ["ceiling fan", "table fan", "pedestal fan", "fan"],
+    },
+    {
+      name: "Induction Cooktop",
+      keywords: ["induction cooktop", "induction stove", "induction"],
+    },
+    {
+      name: "Kitchen Chimney",
+      keywords: ["kitchen chimney", "chimney"],
+    },
+    {
+      name: "Television",
+      keywords: ["television", "smart tv", "led tv", "android tv", "tv"],
+    },
+  ];
+
+  const category =
+    categoryRules.find((rule) => rule.keywords.some((keyword) => lowerText.includes(keyword)))
+      ?.name || "";
+
+  // -----------------------------
+  // Product Name
+  // -----------------------------
+  const nameMatch = normalizedText.match(/(?:PRODUCT\s*NAME|MODEL\s*NAME|PRODUCT)\s*[:\-]\s*(.+)/i);
 
   let name = nameMatch?.[1]?.trim() || "";
 
-  // If no label exists, use the first meaningful line
+  // Remove obvious metadata from the name
+  if (name) {
+    name = name
+      .replace(/\bMRP\b.*$/i, "")
+      .replace(/\bSKU\b.*$/i, "")
+      .replace(/\bMODEL\b.*$/i, "")
+      .trim();
+  }
+
+  // Try to find a useful product line
   if (!name) {
-    const ignoredWords = [
+    const ignored = [
       "mrp",
       "maximum retail price",
-      "made in india",
-      "warranty",
+      "sku",
+      "sku code",
+      "model",
+      "model no",
+      "model number",
+      "product code",
+      "serial",
       "serial number",
       "barcode",
-      "model number",
+      "made in india",
       "manufactured",
+      "manufactured by",
+      "marketed by",
+      "customer care",
+      "warranty",
+      "www.",
+      "www",
+      "imported by",
     ];
 
     name =
-      lines.find(
-        (line) =>
-          line.length > 3 && !ignoredWords.some((word) => line.toLowerCase().includes(word)),
-      ) || "";
+      lines.find((line) => {
+        const lower = line.toLowerCase();
+
+        return (
+          line.length >= 4 &&
+          !ignored.some((word) => lower.includes(word)) &&
+          !/^\d+$/.test(line) &&
+          !/^[\d₹,.\- ]+$/.test(line)
+        );
+      }) || "";
+  }
+
+  // If we know the brand but OCR name didn't include it,
+  // prepend it.
+  if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
+    name = `${brand} ${name}`;
+  }
+
+  // -----------------------------
+  // Clean description
+  // -----------------------------
+  const descriptionLines = lines.filter((line) => {
+    const lower = line.toLowerCase();
+
+    return (
+      line.length > 3 &&
+      !lower.includes("mrp") &&
+      !lower.includes("maximum retail price") &&
+      !lower.includes("sku code") &&
+      !lower.startsWith("sku") &&
+      !lower.includes("model no") &&
+      !lower.includes("model number") &&
+      !lower.startsWith("model") &&
+      !lower.includes("serial number") &&
+      !lower.includes("barcode") &&
+      !lower.includes("made in india") &&
+      !lower.includes("manufactured by") &&
+      !lower.includes("marketed by") &&
+      !lower.includes("customer care")
+    );
+  });
+
+  let description = descriptionLines.join(" ");
+
+  // Don't let OCR produce an enormous description.
+  if (description.length > 500) {
+    description = description.substring(0, 500).trim() + "...";
+  }
+
+  // Add structured information
+  const details: string[] = [];
+
+  if (model) details.push(`Model: ${model}`);
+  if (sku) details.push(`SKU: ${sku}`);
+  if (category) details.push(`Category: ${category}`);
+
+  if (details.length > 0) {
+    description = description
+      ? `${description} ${details.join(" | ")}.`
+      : details.join(" | ") + ".";
   }
 
   return {
     name,
+    brand,
+    model,
+    sku,
     mrp,
-    description: text,
+    category,
+    description,
   };
 }
 function AdminProducts() {

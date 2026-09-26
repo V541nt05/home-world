@@ -43,6 +43,9 @@ function OrdersPage() {
   if (!orders.data?.length) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
+        <Link to="/" className="mb-4 inline-block text-sm text-muted-foreground hover:text-primary">
+          ← Back to Shop
+        </Link>
         <h1 className="text-2xl font-bold">My Orders</h1>
         <Empty label="You haven't placed any orders yet." />
       </div>
@@ -51,6 +54,9 @@ function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
+      <Link to="/" className="mb-4 inline-block text-sm text-muted-foreground hover:text-primary">
+        ← Back to Shop
+      </Link>
       <h1 className="text-2xl font-bold">My Orders</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         View your previous orders and their status.
@@ -66,9 +72,7 @@ function OrdersPage() {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-semibold">
-                  Order #{String(order.id).slice(-6)}
-                </p>
+                <p className="font-semibold">Order #{String(order.id).slice(-6)}</p>
 
                 <p className="mt-1 text-sm text-muted-foreground">
                   {new Date(order.created_at).toLocaleDateString()}

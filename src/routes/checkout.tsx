@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout, Empty } from "@/components/Layout";
 import { cartTotals, clearCart, inr, useCart } from "@/lib/store";
@@ -35,14 +35,65 @@ function Checkout() {
     notes: "",
     payment_method: "cod",
   });
+  useEffect(() => {
+    const loadCustomerDetails = async () => {
+      const { data: userData } = await supabase.auth.getUser();
 
+      if (!userData.user) return;
+
+      try {
+        const { data: customer, error } = await supabase.rpc("get_my_customer_details");
+
+        if (error) throw error;
+
+        if (customer?.length) {
+          const saved = customer[0];
+
+          setForm((current) => ({
+            ...current,
+            name: saved.name || "",
+            phone: saved.phone || "",
+            email: saved.email || "",
+            address: saved.address || "",
+            city: saved.city || "Pune",
+            pincode: saved.pincode || "",
+          }));
+        }
+      } catch (error) {
+        console.error("CUSTOMER LOAD ERROR:", error);
+        toast.error(
+          error instanceof Error ? error.message : "Could not load saved customer details.",
+        );
+      }
+    };
+
+    loadCustomerDetails();
+  }, []);
   const field = (k: keyof typeof form) => ({
     value: form[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm({ ...form, [k]: e.target.value }),
     className: "w-full rounded-md border bg-card px-3 py-2 text-sm",
   });
+  const saveCustomerDetails = async () => {
+    try {
+      const { error } = await supabase.rpc("update_my_customer_details", {
+        p_name: form.name,
+        p_phone: form.phone,
+        p_email: form.email || null,
+        p_address: form.address,
+        p_city: form.city,
+        p_pincode: form.pincode,
+      });
 
+      if (error) throw error;
+
+      toast.success("Customer details saved!");
+    } catch (error) {
+      console.error("CUSTOMER SAVE ERROR:", error);
+      toast.error(error instanceof Error ? error.message : "Could not save customer details.");
+    }
+  };
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!items.length) return;
@@ -62,11 +113,9 @@ function Checkout() {
         if (linkError) throw linkError;
 
         customerId = linkedCustomerId;
-      } else {
-        // Keep guest checkout working
-        const { data: guestCustomer, error: cErr } = await supabase
+        await supabase
           .from("customers")
-          .insert({
+          .update({
             name: form.name,
             phone: form.phone,
             email: form.email || null,
@@ -74,12 +123,7 @@ function Checkout() {
             city: form.city,
             pincode: form.pincode,
           })
-          .select("id")
-          .single();
-
-        if (cErr) throw cErr;
-
-        customerId = guestCustomer.id;
+          .eq("id", customerId);
       }
 
       clearCart();
@@ -114,6 +158,13 @@ function Checkout() {
             <input placeholder="City" required {...field("city")} />
             <input placeholder="Pincode" required {...field("pincode")} />
           </div>
+          <button
+            type="button"
+            onClick={saveCustomerDetails}
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+          >
+            Save Customer Details
+          </button>
           <textarea placeholder="Order notes (optional)" rows={2} {...field("notes")} />
           <div className="rounded-md border bg-card p-3 text-sm">
             <div className="font-medium">Payment method</div>
